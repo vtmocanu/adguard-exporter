@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/henrywhitaker3/adguard-exporter/internal/adguard"
@@ -134,38 +133,27 @@ func collectDhcp(ctx context.Context, client *adguard.Client) {
 }
 
 func collectQueryLogStats(ctx context.Context, client *adguard.Client) {
-	stats, times, queries, err := client.GetQueryLog(ctx)
+	stats, times, err := client.GetQueryLog(ctx)
 	if err != nil {
 		log.Printf("ERROR - could not get query type stats: %v\n", err)
 		metrics.ScrapeErrors.WithLabelValues(client.Url()).Inc()
 		return
 	}
 
-	for c, v := range stats {
-		for t, v := range v {
-			metrics.QueryTypes.WithLabelValues(client.Url(), t, c).Set(float64(v))
-		}
-	}
+	metrics.QueryTypes.Reset()
+	metrics.ProcessingTimeBucket.Reset()
+	metrics.ProcessingTimeBucketMilli.Reset()
 
-	for _, l := range queries {
-		elapsed, err := strconv.ParseFloat(l.Elapsed, 64)
-		if err != nil {
-			continue
-		}
-		protocol := l.ClientProto
-		if protocol == "" {
-			protocol = "plain"
-		}
-		metrics.TotalQueriesDetails.WithLabelValues(client.Url(), l.Client, l.Reason, l.Status, l.Upstream, l.ClientInfo.Name, protocol).Set(elapsed)
-		metrics.TotalQueriesDetailsHistogram.WithLabelValues(client.Url(), l.Client, l.Reason, l.Status, l.Upstream, l.ClientInfo.Name, protocol).Observe(float64(elapsed))
+	for t, v := range stats {
+		metrics.QueryTypes.WithLabelValues(client.Url(), t).Set(float64(v))
 	}
 
 	for _, t := range times {
 		metrics.ProcessingTimeBucketMilli.
-			WithLabelValues(client.Url(), t.Client, t.Upstream).
+			WithLabelValues(client.Url(), t.Upstream).
 			Observe(float64(t.Elapsed.Milliseconds()))
 		metrics.ProcessingTimeBucket.
-			WithLabelValues(client.Url(), t.Client, t.Upstream).
+			WithLabelValues(client.Url(), t.Upstream).
 			Observe(t.Elapsed.Seconds())
 	}
 }

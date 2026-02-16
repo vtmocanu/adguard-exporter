@@ -19,12 +19,14 @@ import (
 )
 
 type Client struct {
-	conf config.Config
+	conf       config.Config
+	httpClient *http.Client
 }
 
 func NewClient(conf config.Config) *Client {
 	return &Client{
-		conf: conf,
+		conf:       conf,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
 
@@ -43,7 +45,7 @@ func (c *Client) do(ctx context.Context, method string, path string, out any) er
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", auth))
 	req = req.WithContext(ctx)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -80,7 +82,7 @@ func (c *Client) doPost(ctx context.Context, path string, body any, out any) err
 	req.Header.Add("Authorization", fmt.Sprintf("Basic %s", auth))
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -139,41 +141,37 @@ func (c *Client) GetDhcp(ctx context.Context) (*DhcpStatus, error) {
 	return out, nil
 }
 
-// func (c *Client) GetQueryLog(ctx context.Context) (map[string]map[string]int, []QueryTime, QueryPerClient, error) {
-func (c *Client) GetQueryLog(ctx context.Context) (map[string]map[string]int, []QueryTime, []logEntry, error) {
+func (c *Client) GetQueryLog(ctx context.Context) (map[string]int, []QueryTime, error) {
 	log := &queryLog{}
 	err := c.do(ctx, http.MethodGet, "/control/querylog?limit=1000&response_status=all", log)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	types, err := c.getQueryTypes(log)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	times, err := c.getQueryTimes(log)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return types, times, log.Log, nil
+	return types, times, nil
 }
 
-func (c *Client) getQueryTypes(log *queryLog) (map[string]map[string]int, error) {
-	out := map[string]map[string]int{}
+func (c *Client) getQueryTypes(log *queryLog) (map[string]int, error) {
+	out := map[string]int{}
 	for _, d := range log.Log {
 		if d.Answer != nil && len(d.Answer) > 0 {
-			if _, ok := out[d.Client]; !ok {
-				out[d.Client] = map[string]int{}
-			}
 			for i := range d.Answer {
 				switch v := d.Answer[i].Value.(type) {
 				case string:
-					out[d.Client][d.Answer[i].Type]++
+					out[d.Answer[i].Type]++
 				case map[string]any:
 					dns65 := &type65{}
 					mapstructure.Decode(v, dns65)
-					out[d.Client]["TYPE"+strconv.Itoa(dns65.Hdr.Rrtype)]++
+					out["TYPE"+strconv.Itoa(dns65.Hdr.Rrtype)]++
 				}
 			}
 		}

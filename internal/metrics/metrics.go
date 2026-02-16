@@ -62,12 +62,12 @@ var (
 		Name:      "processing_time_milliseconds",
 		Namespace: "adguard",
 		Help:      "The processing time of queries (deprecated, use processing_time_seconds)",
-	}, []string{"server", "client", "upstream"})
+	}, []string{"server", "upstream"})
 	ProcessingTimeBucket = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "processing_time_seconds",
 		Namespace: "adguard",
 		Help:      "The processing time of queries",
-	}, []string{"server", "client", "upstream"})
+	}, []string{"server", "upstream"})
 	TopQueriedDomains = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name:      "top_queried_domains",
 		Namespace: "adguard",
@@ -97,18 +97,7 @@ var (
 		Name:      "query_types",
 		Namespace: "adguard",
 		Help:      "The number of queries for a specific type",
-	}, []string{"server", "type", "client"})
-	TotalQueriesDetails = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name:      "queries_details",
-		Namespace: "adguard",
-		Help:      "Total queries by user",
-	}, []string{"server", "user", "reason", "status", "upstream", "client_name", "protocol"})
-	TotalQueriesDetailsHistogram = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:      "queries_details_histogram",
-		Namespace: "adguard",
-		Help:      "Total queries by user",
-		Buckets:   prometheus.LinearBuckets(0, 10, 10),
-	}, []string{"server", "user", "reason", "status", "upstream", "client_name", "protocol"})
+	}, []string{"server", "type"})
 
 	// DHCP
 	DhcpEnabled = prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -147,6 +136,9 @@ func (d *DhcpLeasesServer) Record(server string, leases []adguard.DhcpLease) {
 }
 
 func (d *DhcpLeasesServer) Collect(ch chan<- prometheus.Metric) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	for server, leases := range d.leases {
 		for _, lease := range leases {
 			expires := ""
@@ -185,8 +177,6 @@ func Init() {
 	prometheus.MustRegister(QueryTypes)
 	prometheus.MustRegister(ProcessingTimeBucket)
 	prometheus.MustRegister(ProcessingTimeBucketMilli)
-	prometheus.MustRegister(TotalQueriesDetails)
-	prometheus.MustRegister(TotalQueriesDetailsHistogram)
 
 	// Status
 	prometheus.MustRegister(Running)
