@@ -19,6 +19,7 @@ checksum:
 dockers:
   - goos: linux
     goarch: amd64
+    use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
     dockerfile: Dockerfile
@@ -27,6 +28,7 @@ dockers:
       - ghcr.io/vtmocanu/adguard-exporter:latest-amd64
   - goos: linux
     goarch: arm64
+    use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"
     dockerfile: Dockerfile
