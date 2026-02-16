@@ -11,7 +11,6 @@ builds:
     goarch:
       - amd64
       - arm64
-      - arm
     main: main.go
 archives:
   - format: tar.gz
@@ -34,32 +33,12 @@ dockers:
     image_templates:
       - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-arm64v8
       - ghcr.io/vtmocanu/adguard-exporter:latest-arm64v8
-  - goos: linux
-    goarch: arm
-    build_flag_templates:
-      - "--platform=linux/arm/v6"
-    dockerfile: Dockerfile
-    image_templates:
-      - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-armv6
-      - ghcr.io/vtmocanu/adguard-exporter:latest-armv6
-  - goos: linux
-    goarch: arm
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-    dockerfile: Dockerfile
-    image_templates:
-      - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-armv7
-      - ghcr.io/vtmocanu/adguard-exporter:latest-armv7
 docker_manifests:
   - name_template: ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}
     image_templates:
       - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-amd64
       - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-arm64v8
-      - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-armv7
-      - ghcr.io/vtmocanu/adguard-exporter:{{ .Tag }}-armv6
   - name_template: ghcr.io/vtmocanu/adguard-exporter:latest
     image_templates:
       - ghcr.io/vtmocanu/adguard-exporter:latest-amd64
       - ghcr.io/vtmocanu/adguard-exporter:latest-arm64v8
-      - ghcr.io/vtmocanu/adguard-exporter:latest-armv7
-      - ghcr.io/vtmocanu/adguard-exporter:latest-armv6
